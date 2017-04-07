@@ -1,0 +1,17 @@
+{
+  "name": "bfx-js",
+  "version": "1.0.0",
+  "description": "",
+  "main": "bot.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "argparse": "^1.0.9",
+    "crypto-js": "^3.1.9-1",
+    "mongodb": "^2.2.25",
+    "ws": "^2.2.3"
+  }
+}
