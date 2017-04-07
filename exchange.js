@@ -2,7 +2,10 @@ const Bot = require('./bot')
 const Order = require('./order');
 
 class Exchange {
-  constructor(websocket) {
+  constructor(websocket, testmode) {
+    this.testmode = testmode;
+    this.testmode ? console.log("[testmode] exchange will not place orders")
+      : console.log("[production] exchange will place live orders");
     this.orders = [];
     this.currentTradePrice = 0;
     this.w = websocket;
@@ -23,7 +26,8 @@ class Exchange {
   }
 
   placeOrder(order) {
-    this.w.send([ 0, 'on', null, {
+    console.log("placing order...");
+    let req = [ 0, 'on', null, {
         cid: Date.now(),
         type: "LIMIT",
         symbol: "tBTCUSD",
@@ -31,7 +35,12 @@ class Exchange {
         price: order.price,
         hidden: 0
       }
-    ])
+    ];
+    if (!this.testmode) {
+      this.w.send(req)
+    } else {
+      console.log("making order request...", req);
+    }
     this.orders.push(order);
     this.updateOrders();
   }
