@@ -13,7 +13,8 @@ class FiniteStateBot extends BotTrader {
       "ACTIVE": "ACTIVE",
       "PASSIVE": "PASSIVE"
     })
-    this.setState(this.states.ACTIVE)
+    this.state = this.states.ACTIVE;
+    this.isTimeToBuy = true;
     console.log("[finiteStateBot] initialized");
   }
 
@@ -27,30 +28,26 @@ class FiniteStateBot extends BotTrader {
     console.log("[finiteStateBot] new state", this.currentState);
     return true
   }
-  // we can probably remove this vvv
-  setState(s){
-    this.state = s
-  }
 
   produceNextOrder() {
     // TODO extend bot for trades on multiple currencies; >1 orders
-    if (this.outstandingOrders.length > 0 ||
-      this.state !== this.states.ACTIVE) return null;
-    let price, amount, side,
-      lastMA = this.candles.lastCandle.ma10,
-      order;
-    if (isTimeToBuy) {
-      price = lastMA*(1-lowerMargin);
+    if (this.exchange.orders.length > 0 ||
+        this.state !== this.states.ACTIVE ||
+        !this.candles.lastCandle) return;
+    let order, price, amount, side,
+      lastMA = this.candles.lastCandle.ma10;
+    if (this.isTimeToBuy) {
+      price = lastMA*(1-this.lowerMargin);
       amount = this.exchange.balances.USD/price /10; // only trade 0.1th for now
       side = "buy"
     } else {
-      price = this.lastOrder.price*(1+upperMargin);
+      price = this.lastOrder.price*(1+this.upperMargin);
       amount = -1*this.exchange.balances.BTC; // -1 = sell
       side = "sell"
     }
     order = new Order(price, amount, side);
     console.log("[finiteStateBot] created order: ", JSON.stringify(order));
-    isTimeToBuy = !isTimeToBuy;
+    this.isTimeToBuy = !this.isTimeToBuy;
     // return order;
   }
 
@@ -59,7 +56,7 @@ class FiniteStateBot extends BotTrader {
       let vi = this.getVolatilityIndex(this.volatilityBlocks);
       if (vi < this.volatilityThreshold) {
         console.log("[FiniteStateBot] volatility low. going PASSIVE");
-        this.setState(this.states.PASSIVE)
+        this.state = this.states.PASSIVE;
         // TODO Upon going PASSIVE: cancel outstanding buy orders
       }
     } else if (this.state === this.states.PASSIVE) {
@@ -67,7 +64,7 @@ class FiniteStateBot extends BotTrader {
         this.getEMADerivatives(2, (emad2) => {
           if (emad1 > emad2) {
             console.log("[FiniteStateBot] volatility high. going ACTIVE");
-            this.setState(this.states.ACTIVE);
+            this.state = this.states.ACTIVE;
           }
         });
       })

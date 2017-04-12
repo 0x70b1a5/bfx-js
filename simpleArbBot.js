@@ -11,7 +11,8 @@ class SimpleArbitrageBot extends BotTrader {
   }
 
   produceNextOrder() {
-    if (this.outstandingOrders.length > 0) return null;
+    if (this.outstandingOrders.length > 0 ||
+        !this.candles.lastCandle) return null;
     let price, amount, side,
       lastMA = this.candles.lastCandle.ma10,
       order;

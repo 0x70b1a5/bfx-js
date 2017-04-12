@@ -72,7 +72,11 @@ class CandleArray {
   }
 
   get lastCandle() {
-    return this.candles[this.candles.length-1]
+    return this.size > 0 ? this.candles[this.candles.length-1] : null
+  }
+
+  get interval() {
+    return this.secondsInterval
   }
 }
 

@@ -16,14 +16,17 @@ class Exchange {
   }
 
   initializeOrders(orders) {
-    console.log("found", orders.length, "existing orders");
+    console.log("[exchange] found", orders.length, "existing orders");
     for (let order of orders) {
-      this.orders.push(new Order(order[12], order[6]))
+      let o = new Order(order[16], order[6], (order[6] > 0 ? "buy" : "sell"));
+      console.log("[exchange] ", o);
+      this.orders.push(o)
+
     }
   }
 
   updateOrders() {
-
+    //todo rest
   }
 
   placeOrder(order) {
@@ -47,6 +50,11 @@ class Exchange {
     } else {
       console.log("[exchange] [testmode] order not placed:", req);
     }
+  }
+
+  removeOrder(oid) {
+    // TODO: search and remove
+    this.orders.shift()
   }
 
   updateBalance(currency, amount) {

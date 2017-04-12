@@ -4,6 +4,7 @@ const assert = require('assert');
 
 class BotTrader {
   constructor(exchange, numCandles, candleInterval, candleDB, tradesDB, lower, upper) {
+    this.timeInitialized = Date.now();
     this.tradesDB = tradesDB;
     this.candles = new CandleArray(numCandles, candleInterval, candleDB);
     this.outstandingOrders = [];
@@ -19,13 +20,18 @@ class BotTrader {
       amount: trade[2][2],
       price: trade[2][3]
     };
-    console.log("[botTrader] witnessed trade:",td);
+    console.log("[trade]",td);
     this.candles.add(td);
     this.tradesDB.insertOne(td, (err, data) => assert.equal(err, null));
   }
 
   makeDecision() {
     console.log("[botTrader] making trade decision...");
+    if (this.candles.size*this.candles.interval*1000 <
+        Date.now() - this.timeInitialized) {
+      console.log("[botTrader] not enough data to make a decision")
+      return false
+    }
     let nextOrder = this.produceNextOrder();
     if (nextOrder) {
       this.outstandingOrders.push(nextOrder);
@@ -35,9 +41,8 @@ class BotTrader {
     }
   }
 
-  makeDecisionsRegularly(timePeriod) {
-    var that = this;
-    setInterval(that.makeDecision, timePeriod*1000);
+  makeDecisionsRegularly(bot, timePeriod) {
+    setInterval(this.makeDecision.bind(this), timePeriod*1000);
 	}
 
   produceNextOrder() {}

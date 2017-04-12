@@ -91,41 +91,32 @@ MongoClient.connect("mongodb://localhost:27017/bfx", (err,db) => {
     Candles.deleteMany({});
     console.log("[db] cleared old entries");
   } else console.log("[db] preserving old data");
-  BOT = new FiniteStateBot(BFX, 30, 60, Candles, Trades, 0.01, 0.01)
+  BOT = new FiniteStateBot(BFX, 30, 60, Candles, Trades, 0.01, 0.01, 0.1, 1)
   console.log("[botTrader] setup complete");
+  BOT.makeDecisionsRegularly(BOT, 60);
 })
 
-var channels = {}
 
 var handle = data => {
-  if (data[0] == channels.trades && data[1] == 'te') {
+  if (data[1] == 'te') {
     BOT.processTrade(data);
     return
   } else if (data[1] == "hb") { // empty heartbeat
     return
-  } else if (data[0] == channels.auth && channels.auth) {
+  } else if (data[0] === 0) {
     if (data[1] == 'bu') {
       data[2][3] ? BFX.updateBalance(data[2][3], data[2][1])
         : BFX.updateBalance("USD", data[2][1])
     } else if (data[1] == 'os') {
       BFX.initializeOrders(data[2]);
+    } else if (data[1] == 'oc') {
+      console.log("[websocket] order", data, "closed");
+      BFX.removeOrder(data[2][0])
     }
     return
-  } else if (data[0] == channels.ticker && channels.ticker) {
-    return
-  }
-  if (data.event == "subscribed" || data.event == "auth") {
-    // must fix if trading on multiple currencies...
-    if (data.channel) {
-      // if (data.pair) {
-      //   console.log("[ws:handle] adding trades channel", data.channel+data.pair, "with id", data.chanId);
-      //   channels[data.channel+data.pair] = data.chanId;
-      // } else {
-        console.log("[ws:handle] adding channel", data.channel, "with id", data.chanId);
-        channels[data.channel] = data.chanId;
-      // }
-    }
-    if (data.event == "auth") channels.auth = data.chanId;
-    return
+  } else if (data.event == "subscribed") {
+    console.log("[websocket] subscribed to", data.channel);
+  } else if (data.event == "auth") {
+    console.log("[websocket] authorized");
   }
 }
