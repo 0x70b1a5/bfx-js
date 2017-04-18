@@ -28,25 +28,24 @@ class Auth {
   }
 
   rest(endpoint, payload, callback) {
-    const url = 'https://api.bitfinex.com/v1'
-    const body = new Buffer(JSON.stringify(payload))
-      .toString('base64')
+    const url = `v2/${endpoint}`
+    const nonce = (Date.now()*1000).toString()
+    const rawBody = JSON.stringify(payload)
 
-    const signature = crypto
+    let signature = `/api/${url}${nonce}${rawBody}`
+    signature = crypto
       .createHmac('sha384', apiSecret)
-      .update(body)
+      .update(signature)
       .digest('hex')
 
-    const headers = {
-      'X-BFX-APIKEY': apiKey,
-      'X-BFX-PAYLOAD': body,
-      'X-BFX-SIGNATURE': signature
-    }
-
     const options = {
-      url: `${url}/${endpoint}`,
-      headers,
-      body
+      url: `https://api.bitfinex.com/${url}`,
+      headers: {
+        'bfx-nonce': nonce,
+        'bfx-apikey': apiKey,
+        'bfx-signature': signature
+      },
+      json: payload
     }
 
     request.post(options, (error, response, body) => callback(error, response, body))

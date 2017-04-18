@@ -1,5 +1,6 @@
 const Bot = require('./bot')
 const Order = require('./order');
+const assert = require('assert');
 
 class Exchange {
   constructor(websocket, rest, testmode) {
@@ -21,7 +22,6 @@ class Exchange {
       let o = new Order(order[16], order[6], (order[6] > 0 ? "buy" : "sell"));
       console.log("[exchange] ", o);
       this.orders.push(o)
-
     }
   }
 
@@ -57,9 +57,21 @@ class Exchange {
     this.orders.shift()
   }
 
-  updateBalance(currency, amount) {
-    console.log("updating", currency, "balance... old", this.balances[currency], "new", amount);
-    this.balances[currency] = amount;
+  updateBalances() {
+    this.rest('auth/r/wallets', {}, (err, res, body) => {
+      assert.equal(err, null)
+      body.forEach((wallet) => {
+        if (this.balances.hasOwnProperty(wallet[1]) && wallet[0] == 'exchange') {
+          console.log("[exchange] updating", wallet[1], "balance... old", this.balances[wallet[1]], "new", wallet[2]);
+          this.balances[wallet[1]] = wallet[2];
+          assert.equal(this.balances[[wallet[1]]], wallet[2])
+        }
+      })
+    })
+  }
+
+  get lastOrder() {
+    return this.orders[this.orders.length-1]
   }
 }
 

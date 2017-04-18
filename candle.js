@@ -1,5 +1,5 @@
 class Candle {
-  constructor() {
+  constructor(lastma10, lastma21, lastema) {
     this.empty = true;
     this.amtxpri = 0;
 		this.volume = 0;
@@ -7,14 +7,15 @@ class Candle {
 		this.high = 0;
 		this.open = 0;
 		this.close = 0;
-		this.ma10 = 0;
-		this.ma21 = 0;
-		this.ema = 0;
+		this.ma10 = lastma10 || 0;
+		this.ma21 = lastma21 || 0;
+		this.ema = lastema || 0;
+    this.openTime = Date.now();
   }
 
   add(trade) {
-    this.amtxpri += trade.amount*trade.price;
-    this.volume += trade.amount;
+    this.amtxpri += Math.abs(trade.amount)*trade.price;
+    this.volume += Math.abs(trade.amount);
 
     if (this.empty) {
       this.low = trade.price;
@@ -31,7 +32,7 @@ class Candle {
   }
 
   get average() {
-    return (this.volume > 0) ? this.amtxpri/this.volume : 0
+    return (this.volume !== 0) ? this.amtxpri/this.volume : 0
   }
 }
 

@@ -10,28 +10,41 @@ class CandleArray {
   }
 
   add(trade) {
-    let shouldMakeNewCandle = true;
-		if (this.size>0)
-			shouldMakeNewCandle =
-        trade.time - this.lastCandle.openTime > this.secondsInterval;
-		if (shouldMakeNewCandle){
-			if (this.size>0) {
-        // write next-newest candle to db
-        let candle = this.lastCandle,
-          that = this;
-        candle.ma10 = this.movingAvg(10,candle.average);
-        candle.ma21 = this.movingAvg(21,candle.average);
-        this.expMovingAvg((ema) => {
-          candle.ema = that.lastCandle.ema = ema;
-          that.DB.insertOne(candle);
+    // is it time to create a new candle? if empty, or if timeInterval elapsed: yes
+		if (this.size === 0 ||
+        trade.time - this.lastCandle.openTime > this.secondsInterval*1000) {
+
+      if (this.size>0) {
+        console.log("[candleArray] running calculations on lastCandle...");
+        this.lastCandle.ma10 = this.movingAvg(10, this.lastCandle.average);
+        console.log('[candleArray] ma10 calculated:', this.lastCandle.ma10);
+        this.lastCandle.ma21 = this.movingAvg(21, this.lastCandle.average);
+        console.log('[candleArray] ma21 calculated:', this.lastCandle.ma21);
+        this.lastCandle.ema = this.expMovingAvg
+        console.log('[candleArray] ema calsulated:', this.lastCandle.ema);
+  			console.log('[candleArray] writing lastCandle to DB...');
+        this.DB.insertOne(this.lastCandle, err => {
+          assert.equal(err, null)
         })
-			}
-			// add new candle to bucket afterward to avoid including it in MA calculation
-			let newCandle = new Candle();
+      }
+      console.log('[botTrader] creating new candle...')
+      let newCandle;
+      if (this.lastCandle) {
+        newCandle = new Candle(
+          this.lastCandle.ma10,
+          this.lastCandle.ma21,
+          this.lastCandle.ema
+        )
+      } else {
+        newCandle = new Candle();
+      }
 			newCandle.add(trade);
 			this.candles.push(newCandle);
+      if (this.size > this.maxCandles) {
+        console.log('[candleArray] removing candle...', this.firstCandle);
+        this.candles.shift();
+      }
 		} else this.lastCandle.add(trade);
-		if (this.size > this.maxCandles) this.candles.shift();
   }
 
   movingAvg(prev_candles, fallback) {
@@ -45,26 +58,24 @@ class CandleArray {
       total += tb.volume;
     }
     let lastAvg = this.lastCandle.average;
-    return (total > 0) ? ma/total : (lastAvg > 0) ? lastAvg : fallback
+    if (total > 0) return ma/total;
+    else if (lastAvg > 0) return lastAvg;
+    return fallback
   }
 
-  expMovingAvg(callback) {
+  get expMovingAvg() {
     // if first candle: return SMA21
 		// else: return SMA21 + a * (this period's SMA21 - last period's EMA)
 		// https://en.wikipedia.org/wiki/Moving_average#Exponential_moving_average
     let YEMA = 0,
       a = 2/(this.size+1),
-      SMA = this.movingAvg(21, 0);
+      SMA = this.movingAvg(21, this.lastCandle.average);
     if (this.size > 1) {
       YEMA = this.candles[this.size-2].ema;
     } else {
-      return this.DB.find().sort({openTime:-1}).limit(1).toArray((err, rows) => {
-        assert.equal(err, null);
-        YEMA = rows.ema || SMA;
-        callback(YEMA+a*(SMA-YEMA));
-      });
+      return SMA
     }
-    callback(YEMA+a*(SMA-YEMA))
+    return YEMA+a*(SMA-YEMA)
   }
 
   get size() {
@@ -73,6 +84,10 @@ class CandleArray {
 
   get lastCandle() {
     return this.size > 0 ? this.candles[this.candles.length-1] : null
+  }
+
+  get firstCandle() {
+    return this.candles[0]
   }
 
   get interval() {

@@ -14,7 +14,6 @@ class FiniteStateBot extends BotTrader {
       "PASSIVE": "PASSIVE"
     })
     this.state = this.states.ACTIVE;
-    this.isTimeToBuy = true;
     console.log("[finiteStateBot] initialized");
   }
 
@@ -31,46 +30,62 @@ class FiniteStateBot extends BotTrader {
 
   produceNextOrder() {
     // TODO extend bot for trades on multiple currencies; >1 orders
-    if (this.exchange.orders.length > 0 ||
-        this.state !== this.states.ACTIVE ||
-        !this.candles.lastCandle) return;
-    let order, price, amount, side,
-      lastMA = this.candles.lastCandle.ma10;
-    if (this.isTimeToBuy) {
-      price = lastMA*(1-this.lowerMargin);
-      amount = this.exchange.balances.USD/price /10; // only trade 0.1th for now
+    console.log('[finiteStateBot] producing order...');
+    if (this.exchange.orders.length > 0) {
+      console.log('[finiteStateBot] an order already exists. no order produced');
+      return
+    } else if (this.state !== this.states.ACTIVE) {
+      console.log('[finiteStateBot] passive mode. no order produced');
+      return
+    } else if (!this.candles.lastCandle) {
+      console.log('[finiteStateBot] lastCandle does not exist. no order produced');
+      return
+    }
+
+    let order, price, amount, side;
+    if (this.isTimeToBuy()) {
+      console.log("last MA:", this.candles.lastCandle.ma10);
+      console.log("balance: ", this.exchange.balances.USD);
+      price = this.candles.lastCandle.ma10*(1-this.lowerMargin);
+      console.log("price:", price);
+      console.log(this.exchange.balances.USD/10);
+      amount = this.exchange.balances.USD/10; // only trade 0.1th for now
       side = "buy"
     } else {
       price = this.lastOrder.price*(1+this.upperMargin);
       amount = -1*this.exchange.balances.BTC; // -1 = sell
       side = "sell"
     }
+    if (price === 0) {
+      console.log('[finiteStateBot] cannot order: price incorrectly calculated');
+      return null
+    }
     order = new Order(price, amount, side);
     console.log("[finiteStateBot] created order: ", JSON.stringify(order));
-    this.isTimeToBuy = !this.isTimeToBuy;
     // return order;
+  }
+
+  isTimeToBuy() {
+    if (!this.lastOrder || this.lastOrder.side == 'sell') return true;
+    else return false
   }
 
   determineState() {
     if (this.state === this.states.ACTIVE) {
       let vi = this.getVolatilityIndex(this.volatilityBlocks);
       if (vi < this.volatilityThreshold) {
-        console.log("[FiniteStateBot] volatility low. going PASSIVE");
+        console.log("[finiteStateBot] volatility low. going PASSIVE");
         this.state = this.states.PASSIVE;
         // TODO Upon going PASSIVE: cancel outstanding buy orders
       }
     } else if (this.state === this.states.PASSIVE) {
-      this.getEMADerivatives(1, (emad1) => {
-        this.getEMADerivatives(2, (emad2) => {
-          if (emad1 > emad2) {
-            console.log("[FiniteStateBot] volatility high. going ACTIVE");
-            this.state = this.states.ACTIVE;
-          }
-        });
-      })
+      if (this.getEMADerivatives(1) > this.getEMADerivatives(2)) {
+        console.log("[FiniteStateBot] volatility high. going ACTIVE");
+        this.state = this.states.ACTIVE;
+      }
     } else {
       console.log("[FiniteStateBot] bot has invalid state!", this.state);
-      throw Error
+      this.state = this.states.PASSIVE
     }
   }
 
@@ -84,16 +99,16 @@ class FiniteStateBot extends BotTrader {
     return avgPriceRange/avgPrice*100
   }
 
-  getEMADerivatives(blocks, callback) {
-    // TODO can probably turn below db call into this.super.lastDBcandle(callback)
-    this.candleDB.find().sort({openTime:-1}).limit(blocks).toArray((err,rows) => {
-      assert.equal(err, null);
-      let emad = 0;
-      for (let row of rows) { // we may be able to eliminate need for variable with .map()
-        emad += row.ema;
-      }
-      callback(emad/2) // ... is it always 2? ...
-    })
+  getEMADerivatives(blocks) {
+    let emad = 0;
+    for (let c=this.candles.length-blocks; c<this.candles.length; c++) {
+      emad += this.candles[c].ema;
+    }
+    return(emad/blocks)
+  }
+
+  get lastOrder() {
+    return this.exchange.lastOrder
   }
 }
 

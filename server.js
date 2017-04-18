@@ -41,12 +41,6 @@ const Auth = new (require('./auth'))()
 console.log("[websocket] initializing...");
 const w = new websocket('wss://api.bitfinex.com/ws/2')
 console.log("[rest] authorizing...");
-Auth.rest('/account_infos',
-  {
-    'request': '/v1/account_infos',
-    'nonce': (Date.now()*1000).toString()
-  },
-  (error, response, body) => assert.equal(error, null))
 const BFX = new Exchange(w, Auth.rest, args.testmode);
 
 // console.log("making REST auth request...");
@@ -69,11 +63,7 @@ w.onopen = () => {
     channel: 'trades',
     symbol: 'tBTCUSD'
   }))
-  // w.send(JS({
-  //   event: 'subscribe',
-  //   channel: 'trades',
-  //   symbol: 'tETHUSD'
-  // }))
+  BFX.updateBalances()
   console.log("[websocket] monitoring trades...");
 }
 
@@ -93,7 +83,7 @@ MongoClient.connect("mongodb://localhost:27017/bfx", (err,db) => {
   } else console.log("[db] preserving old data");
   BOT = new FiniteStateBot(BFX, 30, 60, Candles, Trades, 0.01, 0.01, 0.1, 1)
   console.log("[botTrader] setup complete");
-  BOT.makeDecisionsRegularly(BOT, 60);
+  BOT.makeDecisionsRegularly(BOT, 10);
 })
 
 
@@ -104,10 +94,7 @@ var handle = data => {
   } else if (data[1] == "hb") { // empty heartbeat
     return
   } else if (data[0] === 0) {
-    if (data[1] == 'bu') {
-      data[2][3] ? BFX.updateBalance(data[2][3], data[2][1])
-        : BFX.updateBalance("USD", data[2][1])
-    } else if (data[1] == 'os') {
+    if (data[1] == 'os') {
       BFX.initializeOrders(data[2]);
     } else if (data[1] == 'oc') {
       console.log("[websocket] order", data, "closed");
