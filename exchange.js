@@ -31,24 +31,27 @@ class Exchange {
 
   placeOrder(order) {
     if (!this.testmode) {
+      let o = [
+        0,
+        "on",
+        null,
+        {
+          "gid": 1,
+          "cid": Date.now()*1000,
+          "type": "EXCHANGE LIMIT",
+          "symbol": "tBTCUSD",
+          "amount": "0.01",
+          "price": `${order.price}`,
+          "hidden": 0
+        }
+      ];
       console.log("[exchange] placing order...");
-      this.rest(
-          '/order/new',
-          {
-            'symbol': "BTCUSD",
-            'amount': order.amount,
-            'price': order.price,
-            'side': order.side,
-            'type': 'limit'
-          },
-          (err, res, bod) => {
-        console.log("err", err, "res", res, "bod", bod);
-        assert.equal(err,null);
-        this.orders.push(order);
-        this.updateOrders();
-      })
+      // todo negative amount for sell
+      // & conversion of $ to B for buys
+      this.w.send(JSON.stringify(o));
+      console.log(o);
     } else {
-      console.log("[exchange] [testmode] order not placed:", req);
+      console.log("[exchange] [testmode] order not placed:", order);
     }
   }
 

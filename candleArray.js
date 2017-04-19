@@ -27,7 +27,7 @@ class CandleArray {
           assert.equal(err, null)
         })
       }
-      console.log('[botTrader] creating new candle...')
+      console.log('- [botTrader] creating new candle...')
       let newCandle;
       if (this.lastCandle) {
         newCandle = new Candle(

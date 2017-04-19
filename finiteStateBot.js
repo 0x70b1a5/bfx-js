@@ -44,11 +44,7 @@ class FiniteStateBot extends BotTrader {
 
     let order, price, amount, side;
     if (this.isTimeToBuy()) {
-      console.log("last MA:", this.candles.lastCandle.ma10);
-      console.log("balance: ", this.exchange.balances.USD);
       price = this.candles.lastCandle.ma10*(1-this.lowerMargin);
-      console.log("price:", price);
-      console.log(this.exchange.balances.USD/10);
       amount = this.exchange.balances.USD/10; // only trade 0.1th for now
       side = "buy"
     } else {
@@ -62,7 +58,7 @@ class FiniteStateBot extends BotTrader {
     }
     order = new Order(price, amount, side);
     console.log("[finiteStateBot] created order: ", JSON.stringify(order));
-    // return order;
+    return order;
   }
 
   isTimeToBuy() {
@@ -84,7 +80,7 @@ class FiniteStateBot extends BotTrader {
         this.state = this.states.ACTIVE;
       }
     } else {
-      console.log("[FiniteStateBot] bot has invalid state!", this.state);
+      console.log("[finiteStateBot] bot has invalid state!", this.state);
       this.state = this.states.PASSIVE
     }
   }

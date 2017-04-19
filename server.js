@@ -81,9 +81,9 @@ MongoClient.connect("mongodb://localhost:27017/bfx", (err,db) => {
     Candles.deleteMany({});
     console.log("[db] cleared old entries");
   } else console.log("[db] preserving old data");
-  BOT = new FiniteStateBot(BFX, 30, 60, Candles, Trades, 0.01, 0.01, 0.1, 1)
+  BOT = new FiniteStateBot(BFX, 30, 60, Candles, Trades, 0.005, 0.005, 0.01, 1)
   console.log("[botTrader] setup complete");
-  BOT.makeDecisionsRegularly(BOT, 10);
+  BOT.makeDecisionsRegularly(BOT, 60);
 })
 
 
@@ -91,14 +91,16 @@ var handle = data => {
   if (data[1] == 'te') {
     BOT.processTrade(data);
     return
-  } else if (data[1] == "hb") { // empty heartbeat
+  } else if (data[1] == "hb" || data[1] == 'tu') { // heartbeat or tradeupdate
     return
   } else if (data[0] === 0) {
     if (data[1] == 'os') {
       BFX.initializeOrders(data[2]);
     } else if (data[1] == 'oc') {
-      console.log("[websocket] order", data, "closed");
+      console.log(`[websocket] order update ${data[2][0]} closed`);
       BFX.removeOrder(data[2][0])
+    } else if (data[1] == 'n') {
+      console.log("! [websocket]", data)
     }
     return
   } else if (data.event == "subscribed") {
