@@ -1,5 +1,6 @@
 class Order {
-  constructor(price, amount, side) {
+  constructor(id, price, amount, side) {
+    this.id = id;
     this.price = price;
     this.amount = amount;
     this.side = side;

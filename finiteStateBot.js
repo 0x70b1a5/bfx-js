@@ -32,13 +32,13 @@ class FiniteStateBot extends BotTrader {
     // TODO extend bot for trades on multiple currencies; >1 orders
     console.log('[finiteStateBot] producing order...');
     if (this.exchange.orders.length > 0) {
-      console.log('[finiteStateBot] an order already exists. no order produced');
+      console.log('[finiteStateBot] order already exists. no order produced');
       return
     } else if (this.state !== this.states.ACTIVE) {
       console.log('[finiteStateBot] passive mode. no order produced');
       return
     } else if (!this.candles.lastCandle) {
-      console.log('[finiteStateBot] lastCandle does not exist. no order produced');
+      console.log('[finiteStateBot] no lastCandle. no order produced');
       return
     }
 
@@ -53,10 +53,10 @@ class FiniteStateBot extends BotTrader {
       side = "sell"
     }
     if (price === 0) {
-      console.log('[finiteStateBot] cannot order: price incorrectly calculated');
+      console.log('[finiteStateBot] cannot order: price incorrect');
       return null
     }
-    order = new Order(price, amount, side);
+    order = new Order(Date.now()*1000, price, amount, side);
     console.log("[finiteStateBot] created order: ", JSON.stringify(order));
     return order;
   }

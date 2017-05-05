@@ -83,7 +83,7 @@ MongoClient.connect("mongodb://localhost:27017/bfx", (err,db) => {
   } else console.log("[db] preserving old data");
   BOT = new FiniteStateBot(BFX, 30, 60, Candles, Trades, 0.005, 0.005, 0.01, 1)
   console.log("[botTrader] setup complete");
-  BOT.makeDecisionsRegularly(BOT, 60);
+  BOT.makeDecisionsRegularly(60);
 })
 
 

@@ -7,7 +7,7 @@ class BotTrader {
     this.timeInitialized = Date.now();
     this.tradesDB = tradesDB;
     this.candles = new CandleArray(numCandles, candleInterval, candleDB);
-    this.outstandingOrders = [];
+    this.orders = [];
     this.exchange = exchange;
     exchange.bot = this;
   }
@@ -27,21 +27,21 @@ class BotTrader {
     console.log("[botTrader] making trade decision...");
     let nextOrder = this.produceNextOrder();
     if (nextOrder) {
-      this.outstandingOrders.push(nextOrder);
+      this.orders.push(nextOrder);
       this.exchange.placeOrder(nextOrder);
     } else {
       console.log("[botTrader] no order necessary");
     }
   }
 
-  makeDecisionsRegularly(bot, timePeriod) {
+  makeDecisionsRegularly(timePeriod) {
     setInterval(this.makeDecision.bind(this), timePeriod*1000);
 	}
 
   produceNextOrder() {}
 
   get lastOrder() {
-    return this.outstandingOrders[this.outstandingOrders.length-1]
+    return this.orders[this.orders.length-1]
   }
 }
 

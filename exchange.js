@@ -19,14 +19,10 @@ class Exchange {
   initializeOrders(orders) {
     console.log("[exchange] found", orders.length, "existing orders");
     for (let order of orders) {
-      let o = new Order(order[16], order[6], (order[6] > 0 ? "buy" : "sell"));
+      let o = new Order(order[0], order[16], order[6], (order[6] > 0 ? "buy" : "sell"));
       console.log("[exchange] ", o);
       this.orders.push(o)
     }
-  }
-
-  updateOrders() {
-    //todo rest
   }
 
   placeOrder(order) {
@@ -37,18 +33,19 @@ class Exchange {
         null,
         {
           "gid": 1,
-          "cid": Date.now()*1000,
+          "cid": `${order.id}`,
           "type": "EXCHANGE LIMIT",
           "symbol": "tBTCUSD",
-          "amount": "0.01",
+          "amount": `0.1`,
           "price": `${order.price}`,
           "hidden": 0
         }
       ];
       console.log("[exchange] placing order...");
-      // todo negative amount for sell
+      // TODO negative amount for sell
       // & conversion of $ to B for buys
       this.w.send(JSON.stringify(o));
+      this.orders.push(o);
       console.log(o);
     } else {
       console.log("[exchange] [testmode] order not placed:", order);
@@ -56,16 +53,21 @@ class Exchange {
   }
 
   removeOrder(oid) {
-    // TODO: search and remove
-    this.orders.shift()
+    for (let o of this.orders) {
+      if (o.id == oid) {
+        let i = this.orders.indexOf(o);
+        this.orders = this.orders.slice(0,i).concat(this.orders.slice(i+1));
+        return
+      }
+    }
   }
 
   updateBalances() {
     this.rest('auth/r/wallets', {}, (err, res, body) => {
       assert.equal(err, null)
       body.forEach((wallet) => {
-        if (this.balances.hasOwnProperty(wallet[1]) && wallet[0] == 'exchange') {
-          console.log("[exchange] updating", wallet[1], "balance... old", this.balances[wallet[1]], "new", wallet[2]);
+        if (this.balances.hasOwnProperty(wallet[1]) && wallet[0]=='exchange') {
+          console.log(`[balance] ${wallet[1]}`, wallet[2]);
           this.balances[wallet[1]] = wallet[2];
           assert.equal(this.balances[[wallet[1]]], wallet[2])
         }
