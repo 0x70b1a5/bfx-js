@@ -17,8 +17,13 @@ class Exchange {
   }
 
   initializeOrders(orders) {
+    // orders are raw data from the exchange, not Order objects
     console.log("[exchange] found", orders.length, "existing orders");
     for (let order of orders) {
+      if (order[3] !== "tBTCUSD") {
+        console.log("[exchange] at least 1 order is not BTC. ignoring");
+        continue;
+      }
       let o = new Order(order[0], order[16], order[6], (order[6] > 0 ? "buy" : "sell"));
       console.log("[exchange] ", o);
       this.orders.push(o)
@@ -27,26 +32,23 @@ class Exchange {
 
   placeOrder(order) {
     if (!this.testmode) {
-      let o = [
+      let o = JSON.stringify([
         0,
-        "on",
+        'on',
         null,
         {
-          "gid": 1,
-          "cid": `${order.id}`,
-          "type": "EXCHANGE LIMIT",
-          "symbol": "tBTCUSD",
-          "amount": `0.1`,
-          "price": `${order.price}`,
-          "hidden": 0
+          cid: order.id,
+          type: "EXCHANGE LIMIT",
+          symbol: "tBTCUSD",
+          amount: `${order.amount}`,
+          price: `${order.price}`,
+          hidden: 0
         }
-      ];
-      console.log("[exchange] placing order...");
-      // TODO negative amount for sell
-      // & conversion of $ to B for buys
-      this.w.send(JSON.stringify(o));
-      this.orders.push(o);
-      console.log(o);
+      ]);
+      console.log(`[exchange] placing order ${o} ...`);
+      // TODO conversion of $ to B for buys
+      // VERY IMPORTNAt
+      this.w.send(o);
     } else {
       console.log("[exchange] [testmode] order not placed:", order);
     }
@@ -76,7 +78,8 @@ class Exchange {
   }
 
   get lastOrder() {
-    return this.orders[this.orders.length-1]
+    if (this.orders.length > 0) return this.orders[this.orders.length-1];
+    else return null;
   }
 }
 

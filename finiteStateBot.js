@@ -37,46 +37,56 @@ class FiniteStateBot extends BotTrader {
     } else if (this.state !== this.states.ACTIVE) {
       console.log('[finiteStateBot] passive mode. no order produced');
       return
-    } else if (!this.candles.lastCandle) {
+    } else if (!this.lastCandle) {
       console.log('[finiteStateBot] no lastCandle. no order produced');
       return
     }
 
     let order, price, amount, side;
     if (this.isTimeToBuy()) {
-      price = this.candles.lastCandle.ma10*(1-this.lowerMargin);
-      amount = this.exchange.balances.USD/10; // only trade 0.1th for now
+      price = this.lastCandle.ma10*(1-this.lowerMargin);
+      amount = this.exchange.balances.USD/2;
       side = "buy"
     } else {
-      price = this.lastOrder.price*(1+this.upperMargin);
-      amount = -1*this.exchange.balances.BTC; // -1 = sell
+      price = this.lastOrder ?
+        this.lastOrder.price*(1+this.upperMargin)
+        : this.lastCandle.ma10*(1+this.upperMargin);
+      // amount = -1*this.exchange.balances.BTC; // -1 = sell
+      amount = -0.02
       side = "sell"
     }
     if (price === 0) {
       console.log('[finiteStateBot] cannot order: price incorrect');
       return null
     }
-    order = new Order(Date.now()*1000, price, amount, side);
+    order = new Order(Date.now()*10+14, price, amount, side);
     console.log("[finiteStateBot] created order: ", JSON.stringify(order));
     return order;
   }
 
   isTimeToBuy() {
-    if (!this.lastOrder || this.lastOrder.side == 'sell') return true;
-    else return false
+    this.determineState();
+    if (this.lastOrder && this.lastOrder.side == 'sell') return true;
+    if (this.lastOrder && this.exchange.balances.USD >
+          this.lastOrder.price*this.exchange.balances.BTC)  return true;
+    return false
   }
 
   determineState() {
+    console.log("[finiteStateBot] determining state...");
     if (this.state === this.states.ACTIVE) {
       let vi = this.getVolatilityIndex(this.volatilityBlocks);
+      console.log("[finiteStateBot] volatility index: "+vi);
       if (vi < this.volatilityThreshold) {
-        console.log("[finiteStateBot] volatility low. going PASSIVE");
+        console.log(`[finiteStateBot] volatilty low: ${vi} < ${this.volatilityThreshold}. going PASSIVE`);
         this.state = this.states.PASSIVE;
         // TODO Upon going PASSIVE: cancel outstanding buy orders
       }
     } else if (this.state === this.states.PASSIVE) {
-      if (this.getEMADerivatives(1) > this.getEMADerivatives(2)) {
-        console.log("[FiniteStateBot] volatility high. going ACTIVE");
+      let emad1 = this.getEMADerivatives(1),
+        emad2 = this.getEMADerivatives(2);
+      if (emad1 > emad2) {
+        console.log(`[finiteStateBot] volatilty high: ${emad1} > ${emad2}. going ACTIVE`);
         this.state = this.states.ACTIVE;
       }
     } else {
@@ -87,7 +97,7 @@ class FiniteStateBot extends BotTrader {
 
   getVolatilityIndex(blocks) {
     let vi, avgPrice = avgPriceRange = 0;
-    for (let i=this.size-blocks; i<this.size; i++){
+    for (let i=this.candles.length-blocks; i<this.candles.length; i++){
       avgPriceRange += this.candles[i].high - this.candles[i].low;
       avgPrice += this.candles[i].average
     }

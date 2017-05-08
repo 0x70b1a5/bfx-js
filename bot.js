@@ -3,10 +3,11 @@ const Order = require('./order')
 const assert = require('assert');
 
 class BotTrader {
-  constructor(exchange, numCandles, candleInterval, candleDB, tradesDB, lower, upper) {
+  constructor(exchange, numCandles, candleInterval, candleDB, tradesDB, fromDb) {
     this.timeInitialized = Date.now();
     this.tradesDB = tradesDB;
-    this.candles = new CandleArray(numCandles, candleInterval, candleDB);
+    this.candleArray = new CandleArray(numCandles, candleInterval, candleDB);
+    // if (!!fromDb) this.initializeCandles();
     this.orders = [];
     this.exchange = exchange;
     exchange.bot = this;
@@ -18,8 +19,9 @@ class BotTrader {
       amount: trade[2][2],
       price: trade[2][3]
     };
-    console.log("> [trade]",td);
-    this.candles.add(td);
+    console.log("> [trade]",trade);
+    if (isNaN(td.time)) return;
+    this.candleArray.add(td);
     this.tradesDB.insertOne(td, (err, data) => assert.equal(err, null));
   }
 
@@ -38,10 +40,26 @@ class BotTrader {
     setInterval(this.makeDecision.bind(this), timePeriod*1000);
 	}
 
+  // initializeCandles() {
+  //   this.candleDB.find().sort()
+  // }
+
   produceNextOrder() {}
 
   get lastOrder() {
     return this.orders[this.orders.length-1]
+  }
+
+  get candles() {
+    return this.candleArray.candles
+  }
+
+  get lastCandle() {
+    return this.candleArray.lastCandle
+  }
+
+  get secondLastCandle() {
+    return this.candleArray.secondLastCandle
   }
 }
 
