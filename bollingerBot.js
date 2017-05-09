@@ -46,17 +46,25 @@ class BollingerBot extends BotTrader {
     if (!newBand) return null;
     // return null;
     console.log('O [bollingerBot] producing order...');
-    let order, price, amount, side,
+    let order, price, amount, side, tilt,
       buyOrSell = this.isTimeToBuy();
+
+    // nudge order amount in the direction of the asset we have less of
+    if (this.exchange.balances.USD <
+          this.exchange.balances.BTC*this.lastCandle.close) {
+      tilt = 0.01
+    } else {
+      tilt = -0.01
+    }
     if (buyOrSell !== null) {
       if (buyOrSell) {
         price = Math.min(this.lastBand.low, this.lastCandle.close);
-        amount = this.ORDER_AMOUNT;
-        side = "buy"
+        amount = this.ORDER_AMOUNT + tilt;
+        side = "buy";
       } else {
         price = Math.max(this.lastBand.high, this.lastCandle.close);
-        amount = -this.ORDER_AMOUNT
-        side = "sell"
+        amount = -this.ORDER_AMOUNT + tilt;
+        side = "sell";
       }
       order = new Order(Date.now()*10+14, price, amount, side, "EXCHANGE LIMIT");
       console.log("O [bollingerBot] created order: ", JSON.stringify(order));
@@ -70,26 +78,25 @@ class BollingerBot extends BotTrader {
     // return false -> sell order
     // return null -> no order
     this.exchange.updateBalances();
+    let canBuy = true, canSell = true;
     if (this.lastCandle !== null &&
-          this.exchange.balances.USD < this.lastCandle.close*this.ORDER_AMOUNT) {
+        this.exchange.balances.USD < this.lastCandle.close*this.ORDER_AMOUNT) {
       console.log("X [bollingerBot] not enough USD to buy");
-      // TODO revisit whether this is necessary
-      return false
+      canBuy = false;
     }
     if (this.exchange.balances.BTC < this.ORDER_AMOUNT) {
       console.log("X [bollingerBot] not enough BTC to sell");
-      // TODO revisit whether this is necessary
-      return true
+      canSell = false;
     }
-    if (this.lastBand && this.lastCandle.high > this.lastBand.high) {
+    if (this.lastBand && this.lastCandle.high > this.lastBand.high && canSell) {
       console.log("O [bollingerBot] price higher than 2sd. selling...");
       return false
     }
-    if (this.lastBand && this.lastCandle.low < this.lastBand.low) {
+    if (this.lastBand && this.lastCandle.low < this.lastBand.low && canBuy) {
       console.log("O [bollingerBot] price lower than 2sd. buying...");
       return true
     }
-    console.log("- [bollingerBot] no order conditions met.");
+    console.log("X [bollingerBot] no order conditions met.");
     return null
   }
 

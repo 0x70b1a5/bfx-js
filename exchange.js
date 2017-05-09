@@ -21,7 +21,7 @@ class Exchange {
     console.log("O [exchange] found", orders.length, "existing orders");
     for (let order of orders) {
       if (order[3] !== "tBTCUSD") {
-        console.log("- [exchange] at least 1 order is not BTC. ignoring");
+        console.log("I [exchange] at least 1 order is not BTC. ignoring");
         continue;
       }
       let o = new Order(order[0], order[16], order[6], (order[6] > 0 ? "buy" : "sell"));
@@ -46,8 +46,6 @@ class Exchange {
         }
       ]);
       console.log(`O [exchange] placing order ${o} ...`);
-      // TODO conversion of $ to B for buys
-      // VERY IMPORTNAt
       this.w.send(o);
     } else {
       console.log("T [exchange] [testmode] order not placed:", order);
@@ -69,9 +67,9 @@ class Exchange {
       assert.equal(err, null)
       body.forEach((wallet) => {
         if (this.balances.hasOwnProperty(wallet[1]) && wallet[0]=='exchange') {
-          console.log(`$ [balance] ${wallet[1]}: ${wallet[3]}/${wallet[2]}`);
-          this.balances[wallet[1]] = wallet[3];
-          assert.equal(this.balances[[wallet[1]]], wallet[3])
+          console.log(`$ [balance] ${wallet[1]} ${wallet[2]}`);
+          this.balances[wallet[1]] = wallet[2];
+          assert.equal(this.balances[[wallet[1]]], wallet[2])
         }
       })
     })
