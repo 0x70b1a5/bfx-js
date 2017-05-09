@@ -18,14 +18,14 @@ class Exchange {
 
   initializeOrders(orders) {
     // orders are raw data from the exchange, not Order objects
-    console.log("[exchange] found", orders.length, "existing orders");
+    console.log("O [exchange] found", orders.length, "existing orders");
     for (let order of orders) {
       if (order[3] !== "tBTCUSD") {
-        console.log("[exchange] at least 1 order is not BTC. ignoring");
+        console.log("- [exchange] at least 1 order is not BTC. ignoring");
         continue;
       }
       let o = new Order(order[0], order[16], order[6], (order[6] > 0 ? "buy" : "sell"));
-      console.log("[exchange] ", o);
+      console.log("O [exchange] ", o);
       this.orders.push(o)
     }
   }
@@ -45,12 +45,12 @@ class Exchange {
           hidden: 0
         }
       ]);
-      console.log(`$ [exchange] placing order ${o} ...`);
+      console.log(`O [exchange] placing order ${o} ...`);
       // TODO conversion of $ to B for buys
       // VERY IMPORTNAt
       this.w.send(o);
     } else {
-      console.log("$ [exchange] [testmode] order not placed:", order);
+      console.log("T [exchange] [testmode] order not placed:", order);
     }
   }
 
@@ -69,9 +69,9 @@ class Exchange {
       assert.equal(err, null)
       body.forEach((wallet) => {
         if (this.balances.hasOwnProperty(wallet[1]) && wallet[0]=='exchange') {
-          console.log(`$ [balance] ${wallet[1]}`, wallet[2]);
-          this.balances[wallet[1]] = wallet[2];
-          assert.equal(this.balances[[wallet[1]]], wallet[2])
+          console.log(`$ [balance] ${wallet[1]}: ${wallet[3]}/${wallet[2]}`);
+          this.balances[wallet[1]] = wallet[3];
+          assert.equal(this.balances[[wallet[1]]], wallet[3])
         }
       })
     })

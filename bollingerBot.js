@@ -8,13 +8,14 @@ class BollingerBot extends BotTrader {
     this.bandsDB = bandsDB;
     this.numBands = bands;
     this.bands = [];
-    console.log(`I [bollingerBot] initialized with ${bands} bands`);
+    console.log(`- [bollingerBot] initialized with ${bands} bands`);
+    this.ORDER_AMOUNT = 0.1;
   }
 
   getBand(n, k) {
     let len = this.candles.length;
     if (len < n+1) { // skip lastCandle, its ema is a duplicate
-      console.log(`I [bollingerBot] too few candles to band (${len-1}/${n})`);
+      console.log(`- [bollingerBot] too few candles to band (${len-1}/${n})`);
       return null;
     }
     // determine mean and sd of MAs
@@ -36,7 +37,7 @@ class BollingerBot extends BotTrader {
     };
     this.bands.push(band);
     this.bandsDB.insertOne(band, (err, res) => assert.equal(err, null));
-    console.log(`I [bollingerBot] newest band: ${JSON.stringify(band)}`);
+    console.log(`- [bollingerBot] newest band: ${JSON.stringify(band)}`);
     return band;
   }
 
@@ -44,39 +45,52 @@ class BollingerBot extends BotTrader {
     let newBand = this.getBand(this.numBands, 2);
     if (!newBand) return null;
     // return null;
-    console.log('I [bollingerBot] producing order...');
-    let order, price, amount, side;
-    if (this.isTimeToBuy()) {
-      price = Math.min(this.lastBand.low, this.lastCandle.close);
-      amount = 0.03;
-      side = "buy"
-    } else {
-      price = Math.max(this.lastBand.high, this.lastCandle.close);
-      amount = -0.03
-      side = "sell"
+    console.log('O [bollingerBot] producing order...');
+    let order, price, amount, side,
+      buyOrSell = this.isTimeToBuy();
+    if (buyOrSell !== null) {
+      if (buyOrSell) {
+        price = Math.min(this.lastBand.low, this.lastCandle.close);
+        amount = this.ORDER_AMOUNT;
+        side = "buy"
+      } else {
+        price = Math.max(this.lastBand.high, this.lastCandle.close);
+        amount = -this.ORDER_AMOUNT
+        side = "sell"
+      }
+      order = new Order(Date.now()*10+14, price, amount, side, "EXCHANGE LIMIT");
+      console.log("O [bollingerBot] created order: ", JSON.stringify(order));
+      return order
     }
-    order = new Order(Date.now()*10+14, price, amount, side, "EXCHANGE LIMIT");
-    console.log("I [bollingerBot] created order: ", JSON.stringify(order));
-    return order
+    return null;
   }
 
   isTimeToBuy() {
+    // return true -> buy order
+    // return false -> sell order
+    // return null -> no order
     this.exchange.updateBalances();
-    if (this.candles.length < this.numBands) return false;
-    if (this.secondLastCandle !== null &&
-          this.exchange.balances.USD < this.secondLastCandle.close*0.01) {
-      console.log("I [bollingerBot] not enough USD to buy");
+    if (this.lastCandle !== null &&
+          this.exchange.balances.USD < this.lastCandle.close*this.ORDER_AMOUNT) {
+      console.log("X [bollingerBot] not enough USD to buy");
+      // TODO revisit whether this is necessary
       return false
     }
-    // if (this.exchange.balances.BTC < 0.02) {
-    //   console.log("[bollingerBot] not enough BTC to sell");
-    //   return true
-    // }
-    if (this.lastBand && this.secondLastCandle.high > this.lastBand.high) {
-      console.log("I [bollingerBot] price higher than 2sd. selling...");
+    if (this.exchange.balances.BTC < this.ORDER_AMOUNT) {
+      console.log("X [bollingerBot] not enough BTC to sell");
+      // TODO revisit whether this is necessary
+      return true
+    }
+    if (this.lastBand && this.lastCandle.high > this.lastBand.high) {
+      console.log("O [bollingerBot] price higher than 2sd. selling...");
       return false
     }
-    return true
+    if (this.lastBand && this.lastCandle.low < this.lastBand.low) {
+      console.log("O [bollingerBot] price lower than 2sd. buying...");
+      return true
+    }
+    console.log("- [bollingerBot] no order conditions met.");
+    return null
   }
 
   get lastOrder() {
@@ -84,8 +98,7 @@ class BollingerBot extends BotTrader {
   }
 
   get lastBand() {
-    if (this.bands.length === 0) return null;
-    return this.bands[this.bands.length-1]
+    return this.bands.length > 0 ? this.bands[this.bands.length-1] : null
   }
 }
 

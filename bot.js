@@ -26,13 +26,13 @@ class BotTrader {
   }
 
   makeDecision() {
-    console.log("[botTrader] making trade decision...");
+    console.log("O [botTrader] making order decision...");
     let nextOrder = this.produceNextOrder();
     if (nextOrder) {
       this.orders.push(nextOrder);
       this.exchange.placeOrder(nextOrder);
     } else {
-      console.log("[botTrader] no order necessary");
+      console.log("- [botTrader] no order necessary");
     }
   }
 

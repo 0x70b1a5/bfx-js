@@ -50,7 +50,7 @@ const Order = require('./order')
 
 console.log("[websocket] initializing...");
 const w = new websocket('wss://api.bitfinex.com/ws/2')
-console.log("I [rest] authorizing...");
+console.log("- [rest] authorizing...");
 const BFX = new Exchange(w, Auth.rest, args.testmode);
 
 w.onmessage = msg => {
@@ -67,7 +67,7 @@ w.onopen = () => {
     symbol: 'tBTCUSD'
   }))
   BFX.updateBalances()
-  console.log("I [websocket] monitoring trades...");
+  console.log("- [websocket] monitoring trades...");
 }
 
 var DB, Trades, Orders, Candles, Bands, BOT;
@@ -84,13 +84,12 @@ MongoClient.connect("mongodb://localhost:27017/bfx", (err,db) => {
     Orders.deleteMany({});
     Candles.deleteMany({});
     Bands.deleteMany({});
-    console.log("I [db] cleared old entries");
-  } else console.log("I [db] preserving old data");
+    console.log("- [db] cleared old entries");
+  } else console.log("- [db] preserving old data");
   // TODO look up old data in the database and
   // construct candles therefrom
-  // BOT = new FiniteStateBot(BFX, 30, 60, Candles, Trades, 0.005, 0.005, 5, 1)
   BOT = new BollingerBot(BFX, 30, 60, Candles, Trades, Bands, args.preserve, Number(args.bands));
-  console.log("I [botTrader] setup complete");
+  console.log("- [botTrader] setup complete");
 
   // finally, start bot
   BOT.makeDecisionsRegularly(120);
@@ -109,7 +108,7 @@ var handle = data => {
     } else if (data[1] == 'on') {
       let o = data[2],
         order = new Order(o[0], o[16], o[6], (o[6] > 0 ? "buy" : "sell"))
-      console.log(`I [websocket] ${order.side} order confirmed: ${JS(order)}`);
+      console.log(`- [websocket] ${order.side} order confirmed: ${JS(order)}`);
       BFX.orders.push(order)
     } else if (data[1] == 'oc') {
       console.log(`$ [websocket] order #${data[2][0]} closed`);
@@ -120,9 +119,9 @@ var handle = data => {
     }
     return
   } else if (data.event == "subscribed") {
-    console.log("I [websocket] subscribed to", data.channel);
+    console.log("- [websocket] subscribed to", data.channel);
   } else if (data.event == "auth") {
-    console.log("I [websocket] authorized");
+    console.log("- [websocket] authorized");
   }
 }
 
