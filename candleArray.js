@@ -12,21 +12,18 @@ class CandleArray {
   add(trade) {
     // is it time to create a new candle?
     // if empty, or if timeInterval elapsed: yes
+    // write our most recent candle to DB,
+    // and calculate moving averages
 		if (this.candles.length === 0 ||
           trade.time-this.lastCandle.openTime > this.secondsInterval*1000) {
-
       if (this.candles.length>0) {
-        // console.log("[candleArray] running calculations on lastCandle...");
         this.lastCandle.ma10 = this.movingAvg(10, this.lastCandle.average);
-        // console.log('[candleArray] ma10 calculated:', this.lastCandle.ma10);
         this.lastCandle.ma21 = this.movingAvg(21, this.lastCandle.average);
-        // console.log('[candleArray] ma21 calculated:', this.lastCandle.ma21);
         this.lastCandle.ema = this.expMovingAvg
-        // console.log('[candleArray] ema calculated:', this.lastCandle.ema);
   			console.log('- [candleArray] writing lastCandle to DB...');
         this.DB.insertOne(this.lastCandle, err => assert.equal(err, null))
       }
-      console.log(`- [candleArray] creating candle #${this.candles.length}...`)
+      console.log(`- [candleArray] creating new candle...`)
       let newCandle;
       if (this.lastCandle) {
         newCandle = new Candle(

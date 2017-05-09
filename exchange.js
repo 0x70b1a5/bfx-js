@@ -45,12 +45,12 @@ class Exchange {
           hidden: 0
         }
       ]);
-      console.log(`[exchange] placing order ${o} ...`);
+      console.log(`$ [exchange] placing order ${o} ...`);
       // TODO conversion of $ to B for buys
       // VERY IMPORTNAt
       this.w.send(o);
     } else {
-      console.log("[exchange] [testmode] order not placed:", order);
+      console.log("$ [exchange] [testmode] order not placed:", order);
     }
   }
 
@@ -69,7 +69,7 @@ class Exchange {
       assert.equal(err, null)
       body.forEach((wallet) => {
         if (this.balances.hasOwnProperty(wallet[1]) && wallet[0]=='exchange') {
-          console.log(`[balance] ${wallet[1]}`, wallet[2]);
+          console.log(`$ [balance] ${wallet[1]}`, wallet[2]);
           this.balances[wallet[1]] = wallet[2];
           assert.equal(this.balances[[wallet[1]]], wallet[2])
         }
